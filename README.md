@@ -39,6 +39,12 @@ $ cd /opt
 $ sudo git clone https://github.com/ke6yjc/aprs-beacon
 ```
 
+2. Make sure beacon.py is executable
+
+```
+$ sudo chmod +x /opt/aprs-beacon/beacon.py
+```
+
 Yup it's that simple...
 
 ### Updating the script so it will start
