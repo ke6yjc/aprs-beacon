@@ -48,7 +48,7 @@ SYMBOL = '>' # Car
 COMMENT = 'Experimental Raspberry Pi APRS-IS Beacon'
 
 ## Beacon Interval - Control Beacon rate on speed
-DYNAMIC_BEACON = True
+DYNAMIC_BEACON = False
 
 # If speed is above BEACON_SPEED_1 then adjust the beacon interval to BEACON_RATE_1 in minutes
 BEACON_SPEED_1 = 10
@@ -85,7 +85,7 @@ APRX_PATH = '/tmp/beacon.txt'
 RESTART_COUNTER = 10
 
 ## This enables extra stdout outputs for bug-hunting.
-DEBUG = True
+DEBUG = False
 
 # Make sure the comment is sent 'at least' once every comment_period
 REAL_COMMENT_PERIOD = (COMMENT_PERIOD - BEACON_PERIOD) + 1 # add 1 minute
