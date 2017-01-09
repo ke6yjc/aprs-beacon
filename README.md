@@ -10,6 +10,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 * Python 2.x installed
 * PySerial (for connecting to the GPS)
+* python-gps
 * git
 * screen
 
@@ -23,7 +24,7 @@ $ sudo apt-get upgrade
 Install some of those pesky prerequisites...
 
 ```
-sudo apt-get install git screen
+sudo apt-get install git screen python-gps
 ```
 
 ## Installing
