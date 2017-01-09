@@ -34,7 +34,7 @@ os.system('clear')
 print 'Loading..\n'
 
 ## Callsign of beacon <== CHANGE THIS
-CALLSIGN = 'KE6YJC-1'
+CALLSIGN = 'CHANGE ME'
 
 # The beacon is only intended to reach an i-Gate, so a very limited path is needed
 PATH = 'BEACON via WIDE1-1'
@@ -100,7 +100,7 @@ UDP_ADDRESS = "rotate.aprs2.net"
 UDP_PORT = 8080
 
 ## APRS Password <== CHANGE THIS
-PASSWORD = "17597"
+PASSWORD = "123456"
 
 ## GPS Port <== You might need to change this too should work though
 GPS_PORT = "/dev/ttyACM0"
@@ -131,7 +131,7 @@ logger.addHandler(handler)
 print 'Preflight check...'
 if CALLSIGN=='CHANGE ME': print 'You need to change the callsign', logger.error('Default Callsign detected, please update'), quit()
 if PASSWORD=='123456': print 'You need to change your password', logger.error('Default Password detected, please update'), quit()
-print 'Preflight looks good! All settings are a go, lets get started...'
+print 'Preflight looks good! All settings are a go, lets launch the main program...'
 time.sleep(3)
 os.system('clear')
 
