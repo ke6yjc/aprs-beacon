@@ -1,0 +1,12 @@
+[Unit]
+Description=APRS Beacon Service
+After=syslog.target network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/aprs-beacon
+ExecStart=/usr/bin/screen -S gps -D -m /opt/aprs-beacon/beacon.py
+ExecStop=/usr/bin/screen -S gps -X quit
+
+[Install]
+WantedBy=multi-user.target
