@@ -58,10 +58,11 @@ BEACON_RATE_1 = 2
 BEACON_SPEED_2 = 40
 BEACON_RATE_2 = 1
 
-# Default beacon rate
-COMMENT_PERIOD = 15 # Period of sending comment in minutes
+# Default comment beacon rate in minutes
+COMMENT_PERIOD = 15
 
-BEACON_PERIOD = 1 # Period of sending position beacon in minutes
+# Default beacon time in minutes
+BEACON_PERIOD = 30
 
 ## Adds a timestamp to location data, only useful in very high network latency
 ## or low GPS signal environments.
@@ -131,6 +132,7 @@ logger.addHandler(handler)
 print 'Preflight check...'
 if CALLSIGN=='CHANGE ME': print 'You need to change the callsign', logger.error('Default Callsign detected, please update'), quit()
 if PASSWORD=='123456': print 'You need to change your password', logger.error('Default Password detected, please update'), quit()
+if BEACON_PERIOD==30: print 'NOTICE: You are running the default Beacon Rate of 30 minutes, you might want to adjust this', logger.info('Default Beacon Rate of 30 minutes will be used')
 print 'Preflight looks good! All settings are a go, lets launch the main program...'
 time.sleep(3)
 os.system('clear')
