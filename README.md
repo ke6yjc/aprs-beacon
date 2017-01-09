@@ -13,6 +13,7 @@ These instructions will get you a copy of the project up and running on your loc
 * python-gps
 * git
 * screen
+* GPS Unit - Tested with Stratux Uk-162 -> (https://www.amazon.com/gp/product/B01EROIUEW)
 
 Always make sure your pi is up-to-date!!
 
