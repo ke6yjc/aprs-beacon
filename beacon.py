@@ -29,16 +29,18 @@
 # 2017.01.08 - Added logging to beacon_log.txt
 # 2017.01.10 - Fixed GPS GPTXT issue
 # 2017.01.10 - Added MMDVM Last Heard TG injection into beacon comment
-# 2017.01.10 - Fixed timing issues
 
 import os, sys, random
-import gps, os, time, math, threading, re, serial, socket
+import gps, os, time, math, threading, re, serial, socket, datetime
 
 os.system('clear')
 print 'Loading..\n'
 
+### MAIN Config ###
+
 ## Callsign of beacon <== CHANGE THIS
-CALLSIGN = 'CHANGE ME'
+CALLSIGN = 'CHANGE ME' # With SSID ie: N0CALL-1
+MY_CALLSIGN = 'KE6YJC' # Just your callsign ie: N0CALL
 
 ### APRS-IS Server Settings ###
 
@@ -59,47 +61,42 @@ PASSWORD = '123456'
 
 ### Beacon Settings ###
 
-# The beacon is only intended to reach an i-Gate, so a very limited path is needed
+## The beacon is only intended to reach an i-Gate, so a very limited path is needed
 PATH = 'BEACON via WIDE1-1'
 
-# What APRS symbol would you like to be - http://www.aprs.net/vm/DOS/SYMBOLS.HTM
+## What APRS symbol would you like to be - http://www.aprs.net/vm/DOS/SYMBOLS.HTM
 SYMBOL_TABLE = '/' # Primary Symbol Table
 #SYMBOL = 'l' # Laptop
 SYMBOL = '>' # Car
 #SYMBOL = 'v' # Van
 #SYMBOL = 'U' # Bus
 
-# Default comment beacon rate in minutes
-COMMENT_PERIOD = 15
+### Use Imperial Scale
+US_METRIC = True
 
-# Default beacon time in minutes
-BEACON_PERIOD = 30
+## Default beacon time in minutes
+BEACON_PERIOD = 15
 
-### GPS Settings ###
-
-## GPS Port <== You might need to change this too should work though
-GPS_PORT = '/dev/ttyACM0'
-
-## GPS Port Speed
-GPS_PORT_SPEED = 9600
+## Default comment beacon rate in minutes
+COMMENT_PERIOD = 30
 
 ### EXPERIMENTAL USE WITH CAUTION ###
 
 ## Beacon Interval - Control Beacon rate on speed
 DYNAMIC_BEACON = False
 
-# If speed is above BEACON_SPEED_1 then adjust the beacon interval to BEACON_RATE_1 in minutes
+## If speed is above BEACON_SPEED_1 then adjust the beacon interval to BEACON_RATE_1 in minutes
 BEACON_SPEED_1 = 10
 BEACON_RATE_1 = 2
 
-# If speed is above BEACON_SPEED_2 then adjust the beacon interval to BEACON_RATE_2 in minutes
+## If speed is above BEACON_SPEED_2 then adjust the beacon interval to BEACON_RATE_2 in minutes
 BEACON_SPEED_2 = 40
 BEACON_RATE_2 = 1
 
-# Beacon the last talkgroup you were on from MMDVM Logs
+## Beacon the last talkgroup you were on from MMDVM Logs
+## Check your MMDVM.ini file for this information
 BEACON_LASTHEARD = True
-MY_CALLSIGN = 'CHANGE ME' # Used to parse out last heard informtion from MMDVM logs
-MMDVM_LOGS_PATH = '/media/ram0/' # Where are your MMDVM logs kept at and I hope you have them enabled!
+MMDVM_LOGS_PATH = '/media/ram0/'
 
 ## Adds a timestamp to location data, only useful in very high network latency
 ## or low GPS signal environments.
@@ -118,16 +115,25 @@ APRX_PATH = '/tmp/beacon.txt'
 ## LOG_PATH = './beacon_log.txt'
 
 ## Restart Counter
-## This will restart the program if there X number of failed attempts to retrieve gps information
+## This will restart the program if there X number of failed attempts to retrieve gps information 
 RESTART_COUNTER = 10
 
 ## This enables extra stdout outputs for bug-hunting.
 DEBUG = False
 
-# Make sure the comment is sent 'at least' once every comment_period
-REAL_COMMENT_PERIOD = (COMMENT_PERIOD - BEACON_PERIOD) + 1 # add 1 minute
+## Make sure the comment is sent 'at least' once every comment_period
+## REAL_COMMENT_PERIOD = (COMMENT_PERIOD - BEACON_PERIOD) + 1 # add 1 minute
+REAL_COMMENT_PERIOD = COMMENT_PERIOD
 
-### END OF CONFIG ###
+### GPS Settings ###
+
+## GPS Port <== You might need to change this too should work though
+GPS_PORT = '/dev/ttyACM0'
+
+## GPS Port Speed
+GPS_PORT_SPEED = 9600
+
+### END OF CONFIG - DON'T PLAY WITH STUFF BELOW THIS LINE ###
 
 # Setup Logging
 import logging
@@ -146,7 +152,7 @@ handler.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(handler)
 
-## Preflight Check
+# Preflight Check
 print 'Preflight check...'
 if CALLSIGN=='CHANGE ME': print 'You need to change the callsign', logger.error('Default Callsign detected, please update'), quit()
 if PASSWORD=='123456': print 'You need to change your password', logger.error('Default Password detected, please update'), quit()
@@ -192,7 +198,10 @@ class GpsPoller(threading.Thread):
        self.stopped = False
        self.restart_counter = RESTART_COUNTER
        self.gps_error_count = 0
-       self.fix = 'Starting'
+       self.fix = 'GPS Starting'
+       self.sats = 'GPS Starting'
+       time.sleep(0.5)
+       
 
     def stop(self): # Stop the thread at the next opportunity
         self.stopped = True
@@ -205,17 +214,18 @@ class GpsPoller(threading.Thread):
             if self.gps_error_count >= RESTART_COUNTER: 
                 logger.error('Restart Counter reacheched... Be right back...')
                 restart_program()
-            if DEBUG==True:
-                logger.error('No GPS Signal Detected.')
-                print 'Error Count: ', self.gps_error_count
-                print "Missing GPS Data, retrying in 1 seconds..."
-            self.fix = 0
-            time.sleep(1)
-            self.ser.write("$PUBX,00*33\n");
-            line = self.ser.readline()
-        else:
-            self.gps_error_count +=1
-            print "Missing GPS Data, retrying in 1 seconds..."
+        self.fix = 'GPS ERROR'
+        time.sleep(1)
+        self.ser.flush()
+        #self.ser.write("$PUBX,00*33\n");
+        line = self.ser.readline()
+        self.gps_error_count +=1
+        #print "Missing GPS Data, retrying in 1 seconds..."
+        if DEBUG==True:
+            logger.error('No PUBX line detected from GPS.')
+            print 'Error count: ', self.gps_error_count
+            print "No PUBX line detected from GPS, retrying in 1 seconds..."
+
 
     def get_restart_counter(self):
         return self.restart_counter
@@ -232,11 +242,13 @@ class GpsPoller(threading.Thread):
                 line = self.ser.readline()
                 try:
                     if not line.startswith("$PUBX"): # while we don't have a sentence.
-			print 'Bad Respnse: ', line
-                        gps_error()
+			if DEBUG==True:
+			    logger.error('Bad GPS Response: ' + line)
+			    print 'Bad Respnse: ', line
+                        self.gps_error()
                     else:
                         #print "GpsPoller Debug line: " + str(line)
-                        self.full_string = line
+                        self.full_string = line # used for debugging
                         fields = line.split(",")
                         #time = int(round(float(fields[2])))
                         #self.time_hour=(time/10000);
@@ -260,12 +272,15 @@ class GpsPoller(threading.Thread):
                         self.hacc = float(fields[9]) # m
                         self.vacc = float(fields[10]) # m
                         self.speed = float(fields[11]) # km/h
-                        # Random speed
-                        #self.speed = random.randint(35,45)
+			#self.speed = random.randint(5,99) # Random speed testing
+			#print 'UK Speed: ' + str(self.speed)
+			if US_METRIC==True:
+			    self.speed = round((self.speed*0.621371),2) # Convert for MPH
+			#print 'MPH Speed : ' + str(self.speed)
                         self.heading = float(fields[12]) # degrees
                         self.climb = -float(fields[13]) # m/s
                         self.sats = int(fields[18])
-                        if (abs(self.speed)<3):
+                        if (abs(self.speed)<2):
                             self.speed = 0
                 except ValueError:
                     print "Invalid String"
@@ -288,7 +303,7 @@ class Beaconer(threading.Thread):
         self.comment_period = REAL_COMMENT_PERIOD*60 # convert to seconds
         #self.restart_counter = RESTART_COUNTER
         #self.gps_error_count = 0
-        self.full_string = 'NO GPS SIGNAL'
+        self.full_string = 'Starting'
 
     def stop(self): # Stop the thread at the next opportunity
         self.stopped = True
@@ -356,7 +371,7 @@ class Beaconer(threading.Thread):
          return self.speed
     
     def get_debug(self):
-        return self.full_string
+        return self.full_string.rstrip()
         
     def get_beacon_period(self): # Returns the beacon interval in seconds
         return self.beacon_period
@@ -366,6 +381,10 @@ class Beaconer(threading.Thread):
         
     def get_beacon_debug(self): # Returns last aprs string sent 
        return self.last_beacon
+
+    def get_datetime(self,str_epoc): # clea up the time from epoc
+	self.str_datetime = datetime.datetime.fromtimestamp(str_epoc).strftime('%H:%M:%S %m-%d-%Y')
+	return self.str_datetime
         
     def runbeacon(self):
         if APRX: # APRX - Always send comment
@@ -444,14 +463,14 @@ class Beaconer(threading.Thread):
             while not self.stopped:
             	self.update_position()
                 if self.fix=='G3' or self.fix=='G2': # Do we have a GPS fix?
-                    self.no_gps_timer = 0
+                    self.no_gps_timer = math.trunc(time.time())
                     if APRX:
                         self.runbeacon()
                     elif math.trunc(time.time() - self.beacon_timer)>=self.beacon_period:
                         self.runbeacon()
-                    else: # No GPS fix
-                        if self.no_gps_timer==0: self.no_gps_timer = time.time()
-                    time.sleep(0.5)
+                    #else: # No GPS fix
+                    #    if self.no_gps_timer==0: self.no_gps_timer = 0
+                time.sleep(0.5)
         except StopIteration:
             pass
 
@@ -467,7 +486,7 @@ if __name__ == "__main__":
       while 1:
          os.system('clear') # Clear the screen
          # Now draw screen depending on GPS status
-         if shout.get_fix()=='G3':
+         if shout.get_fix()=='G3'or shout.get_fix()=='G2':
             print 'Got GPS Fix!'
             print 'Lat:   ', shout.get_lat()
             print 'Lon:   ', shout.get_lon()
@@ -479,7 +498,7 @@ if __name__ == "__main__":
 	    print 'No fix.'
          print ''
          if shout.get_last_beacon()==0: # No beacon yet sent
-            print 'No beacon yet sent.'
+            print 'No beacon sent yet.'
          else:
             if APRX:
                print APRX_PATH, ' updated ', math.trunc(time.time() - shout.get_last_beacon()), 'seconds ago.'
@@ -488,7 +507,7 @@ if __name__ == "__main__":
          print ''
          print 'Current comment: ', COMMENT
          if shout.get_last_comment()==0: # No comment yet sent
-            print 'No comment yet sent'
+            print 'No comment sent yet.'
          else:
             if APRX==False: ## Can I do this with '!APRS' ?
                print 'Comment timer: ', math.trunc((time.time() - shout.get_last_comment())/60), '/', shout.get_comment_period()/60, ' minutes.'
@@ -500,7 +519,23 @@ if __name__ == "__main__":
             #print shout.get_last_beacon()
 	    print ''
 	    print 'Debug is enabled...'
-	    print shout.get_debug()
+	    print ''
+	    print 'GPS Debugging'
+            print '---'
+	    print 'Last GPS Info:     ', shout.get_debug()
+	    print 'Last good GPS Fix: ', shout.get_datetime(shout.get_last_fix())
+	    print 'GPS Fix:           ', gpsp.fix
+	    print 'No. of Satelites:  ', gpsp.sats
+	    print ''
+	    print 'Beacon Information'
+	    print '---'
+	    print 'The time is:       ', shout.get_datetime(math.trunc(time.time()))
+            print ''
+	    print 'Last Beacon Time:  ', shout.get_datetime(math.trunc(shout.get_last_beacon()))
+	    print 'Last Comment Time: ', shout.get_datetime(math.trunc(shout.get_last_comment()))
+	    print ''
+            print 'Next Beacon Time:  ', shout.get_datetime(math.trunc(shout.get_last_beacon() + shout.get_beacon_period()))
+	    print 'Next Comment Time: ', shout.get_datetime(math.trunc(shout.get_last_comment() + shout.get_comment_period()))
          time.sleep(1) # Give the CPU some time to breathe
    except KeyboardInterrupt: # Catch Ctrl+C, stop both threads
       logger.info('Caught a Ctrl+C command, exiting...')
