@@ -125,7 +125,7 @@ $ sudo cp /opt/aprs-beacon/service/aprs-beacon.timer /lib/systemd/system
 2. Enable the aprs-beacon service
 
 ```
-$ sudo systemctl enable aprs-beacon
+$ sudo systemctl enable aprs-beacon.timer
 ```
 
 3. Start the aprs-beacon service
