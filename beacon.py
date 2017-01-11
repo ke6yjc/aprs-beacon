@@ -40,7 +40,7 @@ print 'Loading..\n'
 
 ## Callsign of beacon <== CHANGE THIS
 CALLSIGN = 'CHANGE ME' # With SSID ie: N0CALL-1
-MY_CALLSIGN = 'KE6YJC' # Just your callsign ie: N0CALL
+MY_CALLSIGN = 'CHANGE ME' # Just your callsign ie: N0CALL
 
 ### APRS-IS Server Settings ###
 
