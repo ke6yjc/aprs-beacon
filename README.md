@@ -1,6 +1,6 @@
 # APRS-Beacon
 
-This is a starter project for aprs-beaconing predominantly on a DVMega hotspot's running on a Raspberry PI. It never any sense to me why I could not beacon my location from my hotspot. So I finally decided to go do some poking around and found some starter code on github that was over a year old. I sat down and changed a few things (to the best of my abilities, I'm NOT a programmer by any means) and this is what I came up with. Please try not to beat me too hard as I'm still learning, but I'm sure with time I'll get better!
+This is a starter project for aprs-beaconing predominantly on a DVMega hotspot's running on a Raspberry PI. It never any sense to me why I could not beacon my location from my hotspot. So I finally decided to go do some poking around and found some starter code on github that was over a year old. I sat down and changed a few things (to the best of my abilities, I'm NOT a programmer by any means) and this is what I came up with. Please try not to beat me too hard as I'm still learning, but I'm sure with time I'll get better.
 
 ## Getting Started
 
