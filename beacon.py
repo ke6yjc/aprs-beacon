@@ -32,108 +32,58 @@
 
 import os, sys, random
 import gps, os, time, math, threading, re, serial, socket, datetime
+import ConfigParser
 
-os.system('clear')
-print 'Loading..\n'
+config = ConfigParser.ConfigParser()
+config.readfp(open(r'beacon.ini'))
 
-### MAIN Config ###
+### MYINFO
+CALLSIGN = config.get('MYINFO', 'CALLSIGN')
+MY_CALLSIGN = config.get('MYINFO', 'MY_CALLSIGN')
 
-## Callsign of beacon <== CHANGE THIS
-CALLSIGN = 'CHANGE ME' # With SSID ie: N0CALL-1
-MY_CALLSIGN = 'CHANGE ME' # Just your callsign ie: N0CALL
+### APRS-IS
+COMMENT = config.get('APRS-IS', 'COMMENT')
+UDP = config.get('APRS-IS', 'UDP')
+UDP_ADDRESS = config.get('APRS-IS', 'UDP_ADDRESS')
+UDP_PORT = config.get('APRS-IS', 'UDP_PORT')
+PASSWORD = config.get('APRS-IS', 'PASSWORD')
 
-### APRS-IS Server Settings ###
+### BEACON
+PATH = config.get('BEACON', 'PATH')
+SYMBOL = config.get('BEACON', 'SYMBOL')
+SYMBOL_TABLE = config.get('BEACON', 'SYMBOL_TABLE')
+US_METRIC = config.get('BEACON', 'US_METRIC')
+BEACON_PERIOD = config.get('BEACON', 'BEACON_PERIOD')
+COMMENT_PERIOD = config.get('BEACON', 'COMMENT_PERIOD')
+DYNAMIC_BEACON = config.get('BEACON', 'DYNAMIC_BEACON')
+BEACON_SPEED_1 = config.get('BEACON', 'BEACON_SPEED_1')
+BEACON_RATE_1 = config.get('BEACON', 'BEACON_RATE_1')
+BEACON_SPEED_2 = config.get('BEACON', 'BEACON_SPEED_2')
+BEACON_SPEED_2 = config.get('BEACON', 'BEACON_RATE_2')
+BEACON_LASTHEARD = config.get('BEACON', 'BEACON_LASTHEARD')
+MMDVM_LOGS_PATH = config.get('BEACON', 'MMDVM_LOGS_PATH')
 
-## APRS Comment <== CHANGE THIS
-COMMENT = 'Experimental Raspberry Pi APRS-IS Beacon'
+### Restart
+RESTART_COUNTER = config.get('RESTART', 'RESTART_COUNTER')
 
-## TCP/IP Beacon Protocol
-UDP = True
+### Debug
+DEBUG = config.get('DEBUGGING', 'DEBUG')
+DEBUG = True
+### GPS
+GPS_PORT = config.get('GPS_SETTINGS', 'GPS_PORT')
+GPS_PORT_SPEED = config.get('GPS_SETTINGS', 'GPS_PORT_SPEED')
 
-## APRS Server
-UDP_ADDRESS = 'rotate.aprs2.net'
+### Logging
+LOG_PATH = config.get('LOGGING', 'LOG_PATH')
 
-## APRS Server Port
-UDP_PORT = 8080
+### Misc.
+TIMESTAMP = config.get('MISC', 'TIMESTAMP')
+ALTITUDE = config.get('MISC', 'ALTITUDE')
+APRX = config.get('MISC', 'APRX')
+APRX_PATH = config.get('MISC', 'APRX_PATH')
+REAL_COMMENT_PERIOD = config.get('MISC', 'REAL_COMMENT_PERIOD')
 
-## APRS Password <== CHANGE THIS
-PASSWORD = '123456'
-
-### Beacon Settings ###
-
-## The beacon is only intended to reach an i-Gate, so a very limited path is needed
-PATH = 'BEACON via WIDE1-1'
-
-## What APRS symbol would you like to be - http://www.aprs.net/vm/DOS/SYMBOLS.HTM
-SYMBOL_TABLE = '/' # Primary Symbol Table
-#SYMBOL = 'l' # Laptop
-SYMBOL = '>' # Car
-#SYMBOL = 'v' # Van
-#SYMBOL = 'U' # Bus
-
-### Use Imperial Scale
-US_METRIC = True
-
-## Default beacon time in minutes
-BEACON_PERIOD = 15
-
-## Default comment beacon rate in minutes
-COMMENT_PERIOD = 30
-
-### EXPERIMENTAL USE WITH CAUTION ###
-
-## Beacon Interval - Control Beacon rate on speed
-DYNAMIC_BEACON = False
-
-## If speed is above BEACON_SPEED_1 then adjust the beacon interval to BEACON_RATE_1 in minutes
-BEACON_SPEED_1 = 10
-BEACON_RATE_1 = 2
-
-## If speed is above BEACON_SPEED_2 then adjust the beacon interval to BEACON_RATE_2 in minutes
-BEACON_SPEED_2 = 40
-BEACON_RATE_2 = 1
-
-## Beacon the last talkgroup you were on from MMDVM Logs
-## Check your MMDVM.ini file for this information
-BEACON_LASTHEARD = True
-MMDVM_LOGS_PATH = '/media/ram0/'
-
-## Adds a timestamp to location data, only useful in very high network latency
-## or low GPS signal environments.
-TIMESTAMP = False # Not yet implemented
-
-## Only valid for short (compressed) packets, this disables course/speed in favour of
-## altitude reporting.
-ALTITUDE = False # WARNING: Currently bugged. (Value reported is too large.)
-
-## This outputs to file (for aprx beacon) instead of calling system 'beacon'
-APRX = False # Standalone beacon by default
-APRX_PATH = '/tmp/beacon.txt'
-
-## Log to file - NOT YET IMPLEMENTED
-## This will provide a log of all happennings (beacons, loss of gps, regain of gps,..)
-## LOG_PATH = './beacon_log.txt'
-
-## Restart Counter
-## This will restart the program if there X number of failed attempts to retrieve gps information 
-RESTART_COUNTER = 10
-
-## This enables extra stdout outputs for bug-hunting.
-DEBUG = False
-
-## Make sure the comment is sent 'at least' once every comment_period
-## REAL_COMMENT_PERIOD = (COMMENT_PERIOD - BEACON_PERIOD) + 1 # add 1 minute
-REAL_COMMENT_PERIOD = COMMENT_PERIOD
-
-### GPS Settings ###
-
-## GPS Port <== You might need to change this too should work though
-GPS_PORT = '/dev/ttyACM0'
-
-## GPS Port Speed
-GPS_PORT_SPEED = 9600
-
-### END OF CONFIG - DON'T PLAY WITH STUFF BELOW THIS LINE ###
+### END OF CONFIG ###
 
 # Setup Logging
 import logging
@@ -152,7 +102,7 @@ handler.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(handler)
 
-# Preflight Check
+## Preflight Check
 print 'Preflight check...'
 if CALLSIGN=='CHANGE ME': print 'You need to change the callsign', logger.error('Default Callsign detected, please update'), quit()
 if PASSWORD=='123456': print 'You need to change your password', logger.error('Default Password detected, please update'), quit()
@@ -315,7 +265,7 @@ class Beaconer(threading.Thread):
     def update_position(self):
         ## Updates this thread's variables from the poller thread
         self.fix = gpsp.fix
-        if(gpsp.fix=="G3" or gpsp.fix=='G2'):
+        if(gpsp.fix=='G3' or gpsp.fix=='G2' or gpsp.fix=='D3' or gpsp.fix=='D2'):
         	self.lat = gpsp.gps_lat
         	self.lon = gpsp.gps_lon
         	self.alt = gpsp.altitude
@@ -387,7 +337,7 @@ class Beaconer(threading.Thread):
 	return self.str_datetime
         
     def runbeacon(self):
-        if APRX: # APRX - Always send comment
+        if APRX==True: # APRX - Always send comment
            beacon_string = self.short_beacon()+COMMENT
            self.comment_timer = time.time()
         elif math.trunc(time.time() - self.comment_timer)>=self.comment_period:
@@ -399,7 +349,7 @@ class Beaconer(threading.Thread):
         else:
            beacon_string = self.short_beacon()
         self.last_beacon = beacon_string
-        if APRX:
+        if APRX==True:
            self.save_beacon(beacon_string)
         elif UDP:
             self.udp_beacon(beacon_string)
@@ -426,7 +376,7 @@ class Beaconer(threading.Thread):
         #logfile.write('Beacon saved: ', aprs_string)
     
     def short_beacon(self): # Compressed beacon format
-        if TIMESTAMP:
+        if TIMESTAMP==True:
            aprs_prefix = '/' # According to the APRS spec (Position, timestamp, no messaging)
         else:
            aprs_prefix = '!' # According to the APRS spec (Position, no timestamp, no messaging)
@@ -440,10 +390,10 @@ class Beaconer(threading.Thread):
         lat_bytes = latlon_encode(380926*(90-self.lat))
         lon_bytes = latlon_encode(190463*(180+self.lon))
         short_packet_string = aprs_prefix + SYMBOL_TABLE
-        if TIMESTAMP:
+        if TIMESTAMP==True:
            short_packet_string += hour + minute + second + 'h'
         short_packet_string += lat_bytes + lon_bytes + SYMBOL
-        if ALTITUDE:
+        if ALTITUDE==True:
            type_byte = chr(33+int('00110010',2)) # Set to GGA to enable altitude
            alt_value = math.log(math.trunc(self.alt*3.28))/math.log(1.002)
            alt_div = math.floor(alt_value/91)
@@ -462,9 +412,9 @@ class Beaconer(threading.Thread):
             time.sleep(0.5) # let's pause for a few seconds to get the data
             while not self.stopped:
             	self.update_position()
-                if self.fix=='G3' or self.fix=='G2': # Do we have a GPS fix?
+                if self.fix=='G3' or self.fix=='G2' or self.fix=='D2' or self.fix=='D2': # Do we have a GPS fix?
                     self.no_gps_timer = math.trunc(time.time())
-                    if APRX:
+                    if APRX==True:
                         self.runbeacon()
                     elif math.trunc(time.time() - self.beacon_timer)>=self.beacon_period:
                         self.runbeacon()
@@ -486,7 +436,7 @@ if __name__ == "__main__":
       while 1:
          os.system('clear') # Clear the screen
          # Now draw screen depending on GPS status
-         if shout.get_fix()=='G3'or shout.get_fix()=='G2':
+         if shout.get_fix()=='G3' or shout.get_fix()=='G2' or shout.get_fix()=='D3' or shout.get_fix()=='D2':
             print 'Got GPS Fix!'
             print 'Lat:   ', shout.get_lat()
             print 'Lon:   ', shout.get_lon()
@@ -500,7 +450,7 @@ if __name__ == "__main__":
          if shout.get_last_beacon()==0: # No beacon yet sent
             print 'No beacon sent yet.'
          else:
-            if APRX:
+            if APRX==True:
                print APRX_PATH, ' updated ', math.trunc(time.time() - shout.get_last_beacon()), 'seconds ago.'
             else:
                print 'Beacon timer: ', math.trunc(time.time() - shout.get_last_beacon()), '/', shout.get_beacon_period(), ' seconds.'
